@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Vestibulando Geo</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7957ff"/>
+      <stop offset="1" stop-color="#356be8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="153" fill="none" stroke="#fff" stroke-width="17" opacity=".96"/>
+  <ellipse cx="256" cy="256" rx="69" ry="153" fill="none" stroke="#fff" stroke-width="13" opacity=".85"/>
+  <path d="M110 256h292M136 183h240M136 329h240" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".85"/>
+  <path d="M256 105l33 123-33 179-33-179z" fill="#fff"/>
+  <circle cx="256" cy="256" r="18" fill="#42e6b2"/>
+</svg>
