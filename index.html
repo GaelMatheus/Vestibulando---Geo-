@@ -23,5 +23,37 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lessons.js"></script>
 <script src="script.js"></script>
-<script>if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) { window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('Falha ao registrar o modo offline:', err))); }</script>
+<script>
+if ('serviceWorker' in navigator &&
+    (location.protocol === 'https:' || location.hostname === 'localhost')) {
+
+    window.addEventListener('load', async () => {
+
+        try {
+
+            const registration = await navigator.serviceWorker.register(
+                './service-worker.js',
+                { updateViaCache: 'none' }
+            );
+
+            // Verifica se existe uma versão nova.
+            await registration.update();
+
+            // Verifica novamente a cada 30 minutos.
+            setInterval(() => {
+                registration.update();
+            }, 30 * 60 * 1000);
+
+            console.log('PWA atualizado e monitorando novas versões.');
+
+        } catch (error) {
+
+            console.warn('Erro ao atualizar PWA:', error);
+
+        }
+
+    });
+
+}
+</script>
 </body></html>
