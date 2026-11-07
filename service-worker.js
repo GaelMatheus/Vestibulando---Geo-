@@ -1,132 +1,84 @@
-/* Vestibulando Geo — PWA Update System */
-'use strict';
+const CACHE_NAME = "vestibulando-geo-v7";
+const MAP_CACHE_NAME = "vestibulando-geo-maps-v1";
+const MAP_HOSTS = new Set([
+  "raw.githubusercontent.com",
+  "servicodados.ibge.gov.br",
+  "pamgia.ibama.gov.br"
+]);
 
-const CACHE_NAME = 'vestibulando-geo-v6';
-
-const APP_SHELL = [
-  './',
-  './index.html',
-  './styles.css',
-  './lessons.js',
-  './script.js',
-  './manifest.webmanifest',
-  './logo.svg',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png'
+const FILES_TO_CACHE = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./script.js",
+  "./lessons.js",
+  "./manifest.webmanifest",
+  "./logo.svg",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-maskable-512.png",
+  "./icons/apple-touch-icon.png"
 ];
 
-/* INSTALAÇÃO */
-
-self.addEventListener('install', event => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
   );
+  self.skipWaiting();
 });
 
-/* ATIVAÇÃO */
-
-self.addEventListener('activate', event => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then(keys =>
-        Promise.all(
-          keys
-            .filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
-        )
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => ![CACHE_NAME, MAP_CACHE_NAME].includes(key))
+          .map((key) => caches.delete(key))
       )
-      .then(() => self.clients.claim())
+    )
   );
+  self.clients.claim();
 });
 
-/* ATUALIZAÇÃO DOS ARQUIVOS */
-
-self.addEventListener('fetch', event => {
-
+self.addEventListener("fetch", (event) => {
   const request = event.request;
-
-  if (request.method !== 'GET') return;
+  if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
+  // Camadas geográficas externas: rede primeiro e cache como alternativa offline.
+  if (MAP_HOSTS.has(url.hostname)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(MAP_CACHE_NAME);
+      try {
+        const response = await fetch(request);
+        if (response.ok) await cache.put(request, response.clone());
+        return response;
+      } catch {
+        return (await cache.match(request)) || Response.error();
+      }
+    })());
+    return;
+  }
+
+  // Arquivos do próprio aplicativo: rede primeiro, cache se estiver sem conexão.
   if (url.origin !== self.location.origin) return;
 
-  // HTML: sempre tenta buscar a versão mais recente.
-  if (request.mode === 'navigate') {
-
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-
-          if (response.ok) {
-            const copy = response.clone();
-
-            event.waitUntil(
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put('./index.html', copy))
-            );
-          }
-
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-
-    return;
-  }
-
-  // JavaScript e CSS: prioriza a versão online.
-  const isCode =
-    /\.(js|css)$/i.test(url.pathname);
-
-  if (isCode) {
-
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-
-          if (response.ok) {
-            const copy = response.clone();
-
-            event.waitUntil(
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(request, copy))
-            );
-          }
-
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
-
-    return;
-  }
-
-  // Outros recursos: prioriza o cache.
-  event.respondWith(
-    caches.match(request)
-      .then(cached => {
-
-        if (cached) return cached;
-
-        return fetch(request).then(response => {
-
-          if (response.ok) {
-            const copy = response.clone();
-
-            event.waitUntil(
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(request, copy))
-            );
-          }
-
-          return response;
-        });
-      })
-  );
-
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request);
+      if (response.ok && response.type === "basic") {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      if (request.mode === "navigate") {
+        return (await caches.match("./index.html")) || Response.error();
+      }
+      return Response.error();
+    }
+  })());
 });
