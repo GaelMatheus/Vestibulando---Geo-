@@ -522,7 +522,7 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 .live-nav-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#43e6a3;box-shadow:0 0 10px #43e6a399;flex:none}
 .nav-item .live-nav-dot{margin:0 9px 0 4px}
 .mobile-nav .live-nav-dot{width:7px;height:7px;margin:0 auto 2px}
-.live-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:16px;align-items:stretch}
+.live-layout{display:grid;grid-template-columns:minmax(0,2.05fr) minmax(250px,.72fr);gap:16px;align-items:stretch}
 .live-map-card,.live-info-card{min-width:0;background:linear-gradient(145deg,#292532,#211e29);border:1px solid #494153;border-radius:21px;box-shadow:0 12px 30px #09070e30;overflow:hidden}
 .live-map-top{height:66px;padding:13px 17px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #40394b}
 .live-map-top>div{display:grid;gap:4px}
@@ -591,3 +591,40 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 .biome-map{background:transparent}
 .biome-region{stroke:#292431!important}
 .biome-region.correct{stroke:#eafff5!important}
+
+/* Radar: países como áreas clicáveis individuais */
+#live-map .leaflet-interactive{cursor:pointer;transition:fill .16s ease,stroke .16s ease;}
+#live-map .live-country-tooltip{background:#211e29;color:#f4efff;border:1px solid #514762;border-radius:8px;box-shadow:0 5px 18px #0005;font-size:11px;padding:5px 8px;}
+#live-map .live-country-tooltip:before{border-top-color:#514762;}
+.live-legend-country{display:inline-block;width:9px;height:9px;margin-left:7px;border-radius:2px;background:#343b4c;border:1px solid #697386;}
+
+/* Radar geopolítico: mapa vetorial próprio, sem tiles ou API de mapas */
+#live-map{position:relative;overflow:hidden;touch-action:pan-y;background:#191923;cursor:grab;user-select:none}
+#live-map:active{cursor:grabbing}
+#live-map>svg{display:block;width:100%;height:100%;overflow:hidden}
+#live-map .country-shape{fill:#30303d;stroke:#777487;stroke-width:.68;vector-effect:non-scaling-stroke;stroke-linejoin:round;cursor:pointer;transition:fill .14s ease,stroke .14s ease}
+#live-map .country-shape.demo-active{fill:#176b55;stroke:#50e8b0;stroke-width:.78}
+#live-map .country-shape.country-hover,#live-map .country-shape:focus{fill:#8060b9;stroke:#d0baff;stroke-width:1.15;outline:none}
+#live-map .country-shape.demo-active.country-hover{fill:#9a75d8}
+#live-map .micro-country{stroke-width:.8}
+#live-map .live-svg-region{cursor:pointer}
+#live-map .region-halo{fill:#43e6a310;stroke:#43e6a388;stroke-width:1.4;vector-effect:non-scaling-stroke;transform-box:fill-box;transform-origin:center;animation:radarExpand 2.4s ease-out infinite}
+#live-map .region-wave{fill:none;stroke:#43e6a3;stroke-width:1.5;vector-effect:non-scaling-stroke;transform-box:fill-box;transform-origin:center;animation:radarWave 2.4s ease-out infinite .8s}#live-map .region-dot{fill:#43e6a3;stroke:#d5fff0;stroke-width:2.2;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 7px #43e6a3);transform-box:fill-box;transform-origin:center;animation:radarBeacon 1.35s ease-in-out infinite}
+#live-map .live-svg-region text{fill:#e9fff6;font:600 12px Inter,system-ui,sans-serif;paint-order:stroke;stroke:#191923;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.live-map-loading{height:100%;display:grid;place-content:center;text-align:center;padding:24px;color:#c9c2d5;font-size:13px}
+
+/* Zoom e navegação dos mapas de países do Atlas (não aplicado aos biomas) */
+.atlas-zoom-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 0 5px}.atlas-zoom-tools button{width:48px;height:44px;border:1px solid #dcd6f5;border-radius:13px;background:#292633;color:#fff;font-size:25px;font-weight:850;cursor:pointer;box-shadow:0 3px 10px #21183b18;transition:transform .12s,background .12s}.atlas-zoom-tools button:hover{background:#493a70}.atlas-zoom-tools button:active{transform:scale(.94)}.atlas-zoom-tools span{font-size:11px;color:var(--muted);margin-left:4px}.continent-map-frame{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.continent-map-frame:active{cursor:grabbing}.continent-map{overflow:hidden;touch-action:none}
+@media(max-width:600px){.atlas-zoom-tools{gap:8px}.atlas-zoom-tools button{width:54px;height:50px;font-size:28px}.atlas-zoom-tools span{flex:1 1 100%;margin:3px 0 0}}
+
+
+/* Enquadramento cartograficamente proporcional do Radar Geopolítico */
+#live-map{height:auto!important;aspect-ratio:2 / 1;width:100%;max-height:650px;min-height:0;background:#191923}
+#live-map>svg{width:100%;height:100%;display:block;preserveAspectRatio:xMidYMid meet}
+@media(max-width:900px){#live-map{height:auto!important;aspect-ratio:2 / 1;max-height:560px}}
+@media(max-width:600px){#live-map{height:auto!important;aspect-ratio:2 / 1;max-height:none}}
+
+@keyframes radarExpand{0%{transform:scale(.55);opacity:.95}100%{transform:scale(1.75);opacity:0}}
+@keyframes radarWave{0%{transform:scale(.75);opacity:.9}100%{transform:scale(2.2);opacity:0}}
+@keyframes radarBeacon{0%,100%{transform:scale(1);filter:drop-shadow(0 0 5px #43e6a3)}50%{transform:scale(1.18);filter:drop-shadow(0 0 11px #43e6a3)}}
+@media(prefers-reduced-motion:reduce){#live-map .region-halo,#live-map .region-wave,#live-map .region-dot{animation:none}}

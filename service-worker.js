@@ -1,4 +1,4 @@
-const CACHE_NAME = "vestibulando-geo-v15";
+const CACHE_NAME = "vestibulando-geo-v21";
 const MAP_CACHE_NAME = "vestibulando-geo-maps-v1";
 const MAP_HOSTS = new Set([
   "raw.githubusercontent.com",
@@ -13,7 +13,6 @@ const FILES_TO_CACHE = [
   "./script.js",
   "./lessons.js",
   "./manifest.webmanifest",
-  "./world-map.svg",
   "./logo.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
