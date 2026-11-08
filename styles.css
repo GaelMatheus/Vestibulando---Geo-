@@ -629,3 +629,56 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 @keyframes radarWave{0%{transform:scale(.75);opacity:.9}100%{transform:scale(2.2);opacity:0}}
 @keyframes radarBeacon{0%,100%{transform:scale(1);filter:drop-shadow(0 0 5px #43e6a3)}50%{transform:scale(1.18);filter:drop-shadow(0 0 11px #43e6a3)}}
 @media(prefers-reduced-motion:reduce){#live-map .region-halo,#live-map .region-wave,#live-map .region-dot{animation:none}}
+
+
+/* Radar Global — painel independente com rolagem interna das notícias. */
+.live-layout{align-items:stretch}
+.live-map-card{align-self:stretch}
+#live-info:has(.live-country-detail){
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+#live-info .live-country-detail{
+  flex:1 1 0;
+  width:100%;
+  height:100%;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#live-info .live-country-detail .live-back,
+#live-info .live-country-detail .live-event-chip,
+#live-info .live-country-detail>h2{flex:0 0 auto}
+#live-info .live-news-list{
+  display:flex;
+  flex:1 1 0;
+  flex-direction:column;
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+  padding:0 8px 8px 0;
+}
+#live-info .live-news-card{flex:0 0 auto}
+#live-info .live-news-list::-webkit-scrollbar{width:7px}
+#live-info .live-news-list::-webkit-scrollbar-thumb{background:#625777;border-radius:8px}
+#live-info .live-news-list{scrollbar-width:thin;scrollbar-color:#625777 transparent}
+/* No mobile, o painel fica abaixo do mapa, com altura própria. */
+@media(max-width:900px){
+  #live-info:has(.live-country-detail){height:420px;min-height:0}
+}
+@media(max-width:600px){
+  #live-info:has(.live-country-detail){height:420px;min-height:0}
+}
+/* Preserva interação por mouse, toque e roda no mapa vetorial. */
+#live-map{pointer-events:auto;touch-action:none;cursor:grab}
+#live-map:active{cursor:grabbing}
+#live-map>svg{pointer-events:auto}
+#live-map [data-country]{pointer-events:all;cursor:pointer}
