@@ -603,6 +603,9 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 #live-map>svg{display:block;width:100%;height:100%;overflow:hidden}
 #live-map .country-shape{fill:#30303d;stroke:#777487;stroke-width:.68;vector-effect:non-scaling-stroke;stroke-linejoin:round;cursor:pointer;transition:fill .14s ease,stroke .14s ease}
 #live-map .country-shape.country-hover,#live-map .country-shape:focus{fill:#8060b9;stroke:#d0baff;stroke-width:1.15;outline:none}
+#live-map .country-shape.has-news{fill:#176b55;stroke:#50e8b0;stroke-width:1.25}
+#live-map .country-shape.has-news.country-hover,#live-map .country-shape.has-news:focus{fill:#8060b9;stroke:#d0baff;stroke-width:1.6;outline:none}
+.live-news-list{display:grid;gap:12px;margin-top:14px}.live-news-card{padding:13px;border:1px solid #494153;border-radius:12px;background:#302b39}.live-news-card h3{margin:0 0 8px;color:#f3efff;font-size:13px;line-height:1.45}.live-news-card p{margin:0;color:#b9b2c7;font-size:11px;line-height:1.55}.live-news-card a{display:inline-block;margin-top:11px;color:#a997ff;font-size:10px;font-weight:850;text-decoration:none}.live-news-card a:hover{text-decoration:underline}
 #live-map .micro-country{stroke-width:.8}
 #live-map .live-svg-region{cursor:pointer}
 #live-map>svg.regions-hidden .live-svg-region{display:none;pointer-events:none}
