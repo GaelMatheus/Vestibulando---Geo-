@@ -791,3 +791,57 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
   .exam-card{background:#302b39!important}
   .rank-progress-card{background:#302b39}
 }
+
+/* Exercícios de mapa dentro dos módulos de Geopolítica */
+.lesson-question-panel{overflow:hidden}
+.lesson-map-frame{background:#191923;border:1px solid #494155;border-radius:16px;padding:8px;overflow:hidden;margin:16px 0 8px}
+.lesson-map-svg{display:block;width:100%;height:auto;max-height:390px}
+.lesson-map-country{fill:#596273;stroke:#262330;stroke-width:.65;vector-effect:non-scaling-stroke;transition:fill .14s,filter .14s}
+.lesson-map-country[role="button"]{cursor:pointer}
+.lesson-map-country[role="button"]:hover,.lesson-map-country[role="button"]:focus{fill:#a18aff;outline:none;filter:brightness(1.15)}
+.lesson-map-country.marked{fill:#9b80ff;stroke:#d5c8ff;stroke-width:1.15}
+.lesson-map-country.correct{fill:#36bd8c;stroke:#b4f2d8;stroke-width:1.2}
+.lesson-map-country.missed{fill:#d96f72;stroke:#ffd0d0;stroke-width:1.2}
+.lesson-map-caption,.lesson-map-instruction{font-size:11px;color:#aaa3ba;margin:7px 2px 12px}
+.lesson-map-loading{display:grid;place-items:center;min-height:190px;padding:25px;text-align:center;color:#c8bfd8;background:#24212c;border:1px dashed #625875;border-radius:15px;margin:15px 0}
+@media(max-width:600px){
+ .lesson-map-frame{padding:4px;border-radius:12px;margin:12px 0 6px}
+ .lesson-map-svg{max-height:280px}
+ .lesson-map-caption,.lesson-map-instruction{font-size:10px}
+}
+
+
+/* Mapas temáticos interpretativos dos módulos de Geopolítica */
+.lesson-map-heading{display:flex;flex-direction:column;gap:4px;margin:14px 2px 8px}
+.lesson-map-heading strong{font-size:13px;color:#f0ebfa}
+.lesson-map-heading small{font-size:11px;line-height:1.5;color:#aaa3ba}
+.lesson-map-country.marked{stroke:#211d2a;stroke-width:1.05}
+.lesson-map-country.map-group-0,.map-legend-dot.map-group-0{fill:#a78bfa;background:#a78bfa}
+.lesson-map-country.map-group-1,.map-legend-dot.map-group-1{fill:#4fc3b1;background:#4fc3b1}
+.lesson-map-country.map-group-2,.map-legend-dot.map-group-2{fill:#f2b65d;background:#f2b65d}
+.lesson-map-country.map-group-3,.map-legend-dot.map-group-3{fill:#6fa8ef;background:#6fa8ef}
+.lesson-map-country.map-group-4,.map-legend-dot.map-group-4{fill:#e78cae;background:#e78cae}
+.lesson-map-country.map-group-5,.map-legend-dot.map-group-5{fill:#a8c96c;background:#a8c96c}
+.lesson-map-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:9px 2px 5px}
+.lesson-map-legend-item{display:inline-flex;align-items:center;gap:6px;color:#d3cddd;font-size:10px;line-height:1.4}
+.map-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.map-node .orb{box-shadow:0 0 0 3px rgba(167,139,250,.12)}
+@media(max-width:600px){.lesson-map-heading strong{font-size:12px}.lesson-map-heading small{font-size:10px}.lesson-map-legend{gap:7px 10px}.lesson-map-legend-item{font-size:9px}}
+
+
+/* Mapas temáticos interpretativos dos módulos de Geopolítica */
+.lesson-map-heading{display:flex;flex-direction:column;gap:4px;margin:14px 2px 8px}
+.lesson-map-heading strong{font-size:13px;color:#f0ebfa}
+.lesson-map-heading small{font-size:11px;line-height:1.5;color:#aaa3ba}
+.lesson-map-country.marked{stroke:#211d2a;stroke-width:1.05}
+.lesson-map-country.map-group-0,.map-legend-dot.map-group-0{fill:#a78bfa;background:#a78bfa}
+.lesson-map-country.map-group-1,.map-legend-dot.map-group-1{fill:#4fc3b1;background:#4fc3b1}
+.lesson-map-country.map-group-2,.map-legend-dot.map-group-2{fill:#f2b65d;background:#f2b65d}
+.lesson-map-country.map-group-3,.map-legend-dot.map-group-3{fill:#6fa8ef;background:#6fa8ef}
+.lesson-map-country.map-group-4,.map-legend-dot.map-group-4{fill:#e78cae;background:#e78cae}
+.lesson-map-country.map-group-5,.map-legend-dot.map-group-5{fill:#a8c96c;background:#a8c96c}
+.lesson-map-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:9px 2px 5px}
+.lesson-map-legend-item{display:inline-flex;align-items:center;gap:6px;color:#d3cddd;font-size:10px;line-height:1.4}
+.map-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.map-node .orb{box-shadow:0 0 0 3px rgba(167,139,250,.12)}
+@media(max-width:600px){.lesson-map-heading strong{font-size:12px}.lesson-map-heading small{font-size:10px}.lesson-map-legend{gap:7px 10px}.lesson-map-legend-item{font-size:9px}}
