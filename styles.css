@@ -367,11 +367,12 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 
 
 /* Ajustes de contraste: questões de vestibular e Atlas */
-.exam-card{background:#fff!important;color:#24212c!important}
-.exam-card .exam-icon{background:#24212c!important;color:#fff}
-.exam-card h2{color:#24212c!important}
-.exam-card p{color:#514b5d!important}
-.exam-card .exam-tag,.exam-card .exam-action{color:#795be8!important}
+.exam-card{background:#f0edfa!important;color:#29243a!important;border-color:#e1daf5!important}
+.exam-card .exam-icon{background:#e4def7!important;color:#6247bd}
+.exam-card h2{color:#29243a!important}
+.exam-card p{color:#625d73!important}
+.exam-card .exam-tag,.exam-card .exam-action{color:#684bd0!important}
+.exam-card:hover{background:#ebe6f7!important;border-color:#cfc2f1!important}
 .country-list{background:#fff!important}
 .country-list summary{color:#24212c!important}
 .country-pick{background:#fff!important;color:#24212c!important}
@@ -682,3 +683,111 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 #live-map:active{cursor:grabbing}
 #live-map>svg{pointer-events:auto}
 #live-map [data-country]{pointer-events:all;cursor:pointer}
+
+
+/* Sistema de ranking por XP */
+.rank-pill{gap:6px;padding:7px 10px;background:#f0edfa;border-color:#e1daf5;color:#55418e}
+.rank-pill span{font-size:14px;line-height:1}
+.rank-pill strong{font-size:11px}
+.rank-pill[data-rank="prata"]{background:#edf0f5;border-color:#d9dee8;color:#596477}
+.rank-pill[data-rank="ouro"]{background:#fff5dc;border-color:#f4dfaa;color:#8b6416}
+.rank-pill[data-rank="platina"]{background:#e9f4f5;border-color:#c9e2e5;color:#39717a}
+.rank-pill[data-rank="diamante"]{background:#e8f1ff;border-color:#cbdcf8;color:#3767a6}
+.rank-pill[data-rank="geografo"]{background:#e9f4e9;border-color:#c9e4cb;color:#347444}
+.rank-progress-card{--rank-accent:#8a6bd5;--rank-soft:#f0edfa;background:linear-gradient(135deg,#fff 0%,var(--rank-soft) 100%);border:1px solid color-mix(in srgb,var(--rank-accent) 24%,white);border-radius:22px;padding:21px;margin:0 0 17px;box-shadow:0 5px 18px #3026700a}
+.rank-progress-card.rank-prata{--rank-accent:#8793a5;--rank-soft:#f0f2f6}
+.rank-progress-card.rank-ouro{--rank-accent:#c18d2e;--rank-soft:#fff7e5}
+.rank-progress-card.rank-platina{--rank-accent:#4c929c;--rank-soft:#edf7f7}
+.rank-progress-card.rank-diamante{--rank-accent:#4e83c5;--rank-soft:#edf4ff}
+.rank-progress-card.rank-geografo{--rank-accent:#4b9860;--rank-soft:#eef8ef}
+.rank-progress-head{display:flex;align-items:center;gap:14px;margin-bottom:17px}
+.rank-emblem{width:58px;height:58px;display:grid;place-items:center;flex:none;border-radius:18px;background:var(--rank-soft);border:1px solid color-mix(in srgb,var(--rank-accent) 25%,white);font-size:31px}
+.rank-progress-head .eyebrow{color:var(--rank-accent);margin-bottom:3px}
+.rank-progress-head h2{margin:0 0 2px;font-size:22px}
+.rank-progress-head p{margin:0;color:var(--muted);font-size:12px}
+.rank-tier-count{margin-left:auto;color:var(--rank-accent);font-size:12px;font-weight:900;background:#fff9;padding:7px 10px;border-radius:10px}
+.rank-next-row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;font-size:11px}
+.rank-next-row strong{color:var(--ink)}
+.rank-next-row span{color:var(--muted);text-align:right}
+.rank-progress-track{height:10px;border-radius:99px;background:#e6e4ee;overflow:hidden}
+.rank-progress-track span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--rank-accent),color-mix(in srgb,var(--rank-accent) 65%,white));transition:width .25s}
+.rank-ladder{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin-top:18px}
+.rank-step{display:grid;justify-items:center;gap:3px;padding:9px 3px;border:1px solid #e8e5ef;border-radius:12px;background:#ffffffa8;opacity:.52;min-width:0}
+.rank-step span{font-size:18px}
+.rank-step strong{font-size:9px;color:var(--ink)}
+.rank-step small{font-size:8px;color:var(--muted)}
+.rank-step.unlocked,.rank-step.current{opacity:1;border-color:color-mix(in srgb,var(--rank-accent) 30%,white)}
+.rank-step.current{background:var(--rank-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rank-accent) 12%,white)}
+@media(max-width:600px){.rank-pill strong{font-size:10px}.rank-pill{padding:6px 7px}.rank-progress-card{padding:16px}.rank-ladder{gap:4px}.rank-step{padding:7px 1px}.rank-step strong{font-size:8px}.rank-step small{font-size:7px}.rank-next-row{align-items:flex-start;flex-direction:column;gap:3px}}
+
+/* Identidade escura: seleção de questões e sistema de ranking */
+.exam-card{
+  background:#302b39!important;
+  color:#f3f0fa!important;
+  border-color:#494253!important;
+  box-shadow:0 6px 20px #17131f20;
+}
+.exam-card .exam-icon{
+  background:#40394b!important;
+  color:#c7b8ff!important;
+}
+.exam-card h2{color:#f3f0fa!important}
+.exam-card p{color:#c2bbce!important}
+.exam-card .exam-tag,.exam-card .exam-action{color:#b9a7ff!important}
+.exam-card:hover{
+  background:#393342!important;
+  border-color:#76649c!important;
+  box-shadow:0 12px 28px #17131f35;
+}
+
+/* Ranking no hero e na página Meu progresso */
+.rank-pill,
+.rank-pill[data-rank="prata"],
+.rank-pill[data-rank="ouro"],
+.rank-pill[data-rank="platina"],
+.rank-pill[data-rank="diamante"],
+.rank-pill[data-rank="geografo"]{
+  background:#302b39;
+  border-color:#494253;
+  color:#f3f0fa;
+}
+.rank-progress-card{
+  background:#302b39;
+  border-color:#494253;
+  color:#f3f0fa;
+  box-shadow:0 8px 24px #17131f25;
+}
+.rank-progress-card.rank-prata,
+.rank-progress-card.rank-ouro,
+.rank-progress-card.rank-platina,
+.rank-progress-card.rank-diamante,
+.rank-progress-card.rank-geografo{
+  background:#302b39;
+  border-color:#494253;
+}
+.rank-emblem{
+  background:#40394b;
+  border-color:color-mix(in srgb,var(--rank-accent) 48%,#494253);
+}
+.rank-progress-head h2{color:#f3f0fa}
+.rank-progress-head p{color:#bdb6c9}
+.rank-progress-head .eyebrow{color:color-mix(in srgb,var(--rank-accent) 70%,#c9baff)}
+.rank-tier-count{background:#40394b;color:#e7e0f2}
+.rank-next-row strong{color:#f3f0fa}
+.rank-next-row span{color:#bdb6c9}
+.rank-progress-track{background:#514a5b}
+.rank-step{
+  background:#393342;
+  border-color:#514a5b;
+}
+.rank-step strong{color:#f3f0fa}
+.rank-step small{color:#bdb6c9}
+.rank-step.current{
+  background:#484052;
+  border-color:color-mix(in srgb,var(--rank-accent) 55%,#514a5b);
+}
+.rank-step.unlocked{border-color:#62596d}
+@media(max-width:600px){
+  .exam-card{background:#302b39!important}
+  .rank-progress-card{background:#302b39}
+}
