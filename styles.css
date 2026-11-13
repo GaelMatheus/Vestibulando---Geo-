@@ -1424,17 +1424,3 @@ body.exam-active{background:#ffffff!important;color:#203238!important}
     margin: 0;
   }
 }
-
-
-/* Mobile: o seletor de jornada ocupa o lugar do título; elimina-se o hero superior redundante.
-   Regras restritas a telas pequenas — desktop permanece inalterado. */
-.mobile-switch-slot{display:none}
-@media(max-width:820px){
-  .topbar{display:none!important}
-  .mobile-switch-slot{display:block;width:100%;min-width:0;margin:0 0 2px}
-  .mobile-switch-slot .switch-wrap{display:block;width:100%;min-width:0;margin:0}
-  .mobile-switch-slot .switch-wrap>label{font-size:9px;letter-spacing:1.5px;margin:0 0 6px 3px;color:#52766e!important}
-  .mobile-switch-slot .switcher{width:100%;min-height:54px;padding:8px 11px}
-  #content:has(.journey) .welcome h1,
-  #content:has(.journey) .welcome .journey-subhead-placeholder{display:none!important}
-}
