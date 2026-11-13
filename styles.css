@@ -845,3 +845,19 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 .map-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
 .map-node .orb{box-shadow:0 0 0 3px rgba(167,139,250,.12)}
 @media(max-width:600px){.lesson-map-heading strong{font-size:12px}.lesson-map-heading small{font-size:10px}.lesson-map-legend{gap:7px 10px}.lesson-map-legend-item{font-size:9px}}
+
+/* Ofensiva: chama animada */
+.streak-flame{display:inline-block;width:25px;height:25px;object-fit:contain;vertical-align:middle}
+.streak-title{display:flex;align-items:center;gap:7px}
+.streak-pill{gap:6px}
+.streak-pill .streak-flame{width:20px;height:20px}
+@media(max-width:600px){
+  /* Na jornada mobile, as questões ficam livres, sem a caixa externa. */
+  .lesson-active .lesson-question-panel{
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+    border-radius:0!important;
+    padding:0!important;
+  }
+}

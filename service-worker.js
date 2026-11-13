@@ -1,5 +1,5 @@
-const CACHE_NAME = "vestibulando-geo-v31";
-const MAP_CACHE_NAME = "vestibulando-geo-maps-v1";
+const CACHE_NAME = "vestibulando-geo-v32-offline";
+const MAP_CACHE_NAME = "vestibulando-geo-maps-v2";
 const MAP_HOSTS = new Set([
   "raw.githubusercontent.com",
   "servicodados.ibge.gov.br",
@@ -20,39 +20,61 @@ const FILES_TO_CACHE = [
   "./icons/apple-touch-icon.png"
 ];
 
+const MAP_DATA_URLS = [
+  "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson",
+  "https://pamgia.ibama.gov.br/server/rest/services/01_Publicacoes_Bases/biomas_ibge_250k_2019/MapServer/2/query?where=1%3D1&outFields=bioma&returnGeometry=true&outSR=4326&f=geojson"
+];
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
-  );
+  event.waitUntil((async () => {
+    const appCache = await caches.open(CACHE_NAME);
+    // O núcleo do app é obrigatório: se algum arquivo local faltar, a instalação falha
+    // e o navegador mantém o service worker anterior, em vez de ativar um cache incompleto.
+    await appCache.addAll(FILES_TO_CACHE);
+
+    // Os mapas são complementares: tenta baixá-los agora para uso offline,
+    // mas uma indisponibilidade dos serviços geográficos não impede a instalação.
+    const mapCache = await caches.open(MAP_CACHE_NAME);
+    await Promise.allSettled(MAP_DATA_URLS.map(async (url) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (response.ok && (response.type === "cors" || response.type === "basic")) {
+          await mapCache.put(url, response.clone());
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    }));
+  })());
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => ![CACHE_NAME, MAP_CACHE_NAME].includes(key))
-          .map((key) => caches.delete(key))
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter((key) => ![CACHE_NAME, MAP_CACHE_NAME].includes(key))
+      .map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
-
   const url = new URL(request.url);
 
-  // Camadas geográficas externas: rede primeiro e cache como alternativa offline.
+  // GeoJSON: tenta atualizar pela rede; sem conexão, usa a cópia já armazenada.
   if (MAP_HOSTS.has(url.hostname)) {
     event.respondWith((async () => {
       const cache = await caches.open(MAP_CACHE_NAME);
       try {
         const response = await fetch(request);
-        if (response.ok) await cache.put(request, response.clone());
+        if (response.ok && (response.type === "cors" || response.type === "basic")) {
+          await cache.put(request, response.clone());
+        }
         return response;
       } catch {
         return (await cache.match(request)) || Response.error();
@@ -61,7 +83,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Arquivos do próprio aplicativo: rede primeiro, cache se estiver sem conexão.
+  // Não intercepta serviços externos como Supabase/CDN: eles não são necessários
+  // para abrir a jornada, responder questões e salvar o progresso local.
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {

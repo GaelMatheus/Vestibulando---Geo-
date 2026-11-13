@@ -7,7 +7,9 @@
 const SUPABASE_URL = 'https://wglpormkexxouuaqwyhq.supabase.co';
 // Insira aqui sua chave PUBLICÁVEL (sb_publishable_...). Nunca use service_role/secret.
 const SUPABASE_ANON_KEY = 'sb_publishable_MKTJTsep36N6j6mKJWEYTA_B7fS7YMJ';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient = null;
+let supabaseLoading = false, supabaseInitialized = false, authInitializing = false, authListenerRegistered = false;
+const OFFLINE_DIRTY_KEY = 'vestibulando-geo-v2-offline-dirty';
 let authUser = null, syncReady = false, syncTimer = null, authMode = 'login';
 const SOURCE_DATA=window.GEO_CONTENT||[];
 const sourceCartografia=SOURCE_DATA.find(c=>c.id==='cartografia');
@@ -35,7 +37,11 @@ let state=load(), view='jornada', session=null, map={mode:'countries',continent:
 let toastTimer;
 const active=()=>DATA.find(c=>c.id===state.active)||DATA[0], lessons=(c=active())=>c.lessons||[], doneCount=(c=active())=>lessons(c).filter(l=>state.completed[l.id]).length;
 function save(){
-  try{localStorage.setItem(KEY,JSON.stringify(state))}catch{}
+  try{
+    localStorage.setItem(KEY,JSON.stringify(state));
+    // Marca alterações feitas sem sincronização para preservá-las ao reconectar.
+    if(!navigator.onLine || !supabaseClient || !authUser || !syncReady) localStorage.setItem(OFFLINE_DIRTY_KEY,'1');
+  }catch{}
   updateHeader();
   if(authUser && syncReady){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncProgress(),650)}
 }
@@ -116,20 +122,18 @@ function pathHTML(c){
       return `<path d="M ${from} ${y1} C ${from} ${y1+58}, ${to} ${y2-58}, ${to} ${y2}"/>`;
     }).join('');
     const isGeo=c.id==='geopolitica';
-    const countText=isGeo?`${moduleItems.length} exercícios · 5 questões por exercício`:`${moduleItems.length} etapas de aprendizagem`;
     return `<section class="module-section" data-module-section="${group.number}" data-module="${group.number}">
       <header class="module-heading">
         <span class="module-kicker">MÓDULO ${String(group.number).padStart(2,'0')} / ${groups.length}</span>
         <h2>Módulo ${group.number}</h2>
         <h3>${esc(group.title)}</h3>
-        <small>${countText}</small>
       </header>
       <div class="module-path" data-module-path="${group.number}">${moduleItems.map(({lesson,index})=>renderNode(lesson,index,`Módulo ${group.number}`)).join('')}<svg class="path-connectors" viewBox="0 0 100 ${moduleItems.length*step+20}" preserveAspectRatio="none" aria-hidden="true">${connectors}</svg></div>
       <div class="module-end"><span>✦</span><strong>FIM DO MÓDULO ${group.number}</strong><span class="module-end-line"></span></div>
     </section>`;
   }).join('');
 }
-function journey(){const c=active(),n=lessons(c),done=doneCount(c),pct=Math.round(done/n.length*100),next=nextLesson(c),days=['S','T','Q','Q','S','S','D'];return `<div class="welcome"><div><h1>${esc(c.name)}</h1><p class="subhead">Estude por etapas e acompanhe seu progresso.</p></div><button class="primary" data-continue ${next?'':'disabled'}>${next?'▶ Continuar jornada':'✓ Jornada concluída'}</button></div><div class="journey"><section><div class="unit-banner"><div class="unit-symbol">${c.icon||c.emoji}</div><div><h2>${esc(c.unit)}</h2><p>${esc(c.description)}</p></div><div class="unit-progress"><strong>${pct}%</strong><span>da jornada</span></div></div><div class="path">${pathHTML(c)}</div></section><aside class="side-col"><div class="side-card streak-card"><h3>🔥 Sequência</h3><div class="streak-big">${state.streak} <small>${state.streak===1?'dia seguido':'dias seguidos'}</small></div><div class="week">${days.map((d,i)=>`<div class="day ${state.streak&&i<Math.min(state.streak,7)?'active':''}"><span>${state.streak&&i<Math.min(state.streak,7)?'✓':d}</span><small>${d}</small></div>`).join('')}</div></div><div class="side-card"><h3>Seu progresso</h3><div class="ring-row"><div class="ring" style="--pct:${pct}%"><strong>${pct}%</strong></div><div><strong>${done} de ${n.length} lições</strong><div class="muted">${pct===100?'Jornada concluída':`${n.length-done} etapas restantes`}</div></div></div><div class="daily-bar" style="margin-top:15px"><span style="width:${pct}%"></span></div></div></aside></div>`}
+function journey(){const c=active(),n=lessons(c),done=doneCount(c),pct=Math.round(done/n.length*100),next=nextLesson(c),days=['S','T','Q','Q','S','S','D'];return `<div class="welcome"><div><h1>${esc(c.name)}</h1><p class="subhead">Estude por etapas e acompanhe seu progresso.</p></div><button class="primary" data-continue ${next?'':'disabled'}>${next?'▶ Continuar jornada':'✓ Jornada concluída'}</button></div><div class="journey"><section><div class="unit-banner"><div class="unit-symbol">${c.icon||c.emoji}</div><div><h2>${esc(c.unit)}</h2><p>${esc(c.description)}</p></div><div class="unit-progress"><strong>${pct}%</strong><span>da jornada</span></div></div><div class="path">${pathHTML(c)}</div></section><aside class="side-col"><div class="side-card streak-card"><h3 class="streak-title"><img class="streak-flame" src="./streak-flame.gif" alt=""> Sequência</h3><div class="streak-big">${state.streak} <small>${state.streak===1?'dia seguido':'dias seguidos'}</small></div><div class="week">${days.map((d,i)=>`<div class="day ${state.streak&&i<Math.min(state.streak,7)?'active':''}"><span>${state.streak&&i<Math.min(state.streak,7)?'✓':d}</span><small>${d}</small></div>`).join('')}</div></div><div class="side-card"><h3>Seu progresso</h3><div class="ring-row"><div class="ring" style="--pct:${pct}%"><strong>${pct}%</strong></div><div><strong>${done} de ${n.length} lições</strong><div class="muted">${pct===100?'Jornada concluída':`${n.length-done} etapas restantes`}</div></div></div><div class="daily-bar" style="margin-top:15px"><span style="width:${pct}%"></span></div></div></aside></div>`}
 function startLesson(id,quick=false,qs=null){const c=active(),l=quick?{id:'quick',title:'Desafio rápido',icon:'⚡',minutes:3,intro:'Cinco perguntas rápidas de diferentes conteúdos.',questions:qs}:lessons(c).find(x=>x.id===id);if(!l)return;const i=lessons(c).findIndex(x=>x.id===id);if(!quick&&!isUnlocked(l,i,c)){notify('Conclua a lição anterior para desbloquear esta.');return}session={lesson:l,index:0,correct:0,phase:quick?'question':'intro',answered:false,quick};renderSession()}
 function lessonMapMarkup(q){
  if(!map.data)return '<div class="lesson-map-loading">Preparando o mapa-múndi…</div>';
@@ -442,7 +446,7 @@ function answerExam(type,i,j){
   if(card){card.hidden=false;card.className=`enem-feedback feedback ${correct?'good':'bad'}`;card.innerHTML=`<strong>${correct?'✓ Correto!':'Resposta correta: '+String.fromCharCode(65+q.r)+'. '+esc(q.op[q.r])}</strong><p>${esc(q.e)}</p><small>${correct?'Questão concluída: ela não será sorteada novamente.':'Esta questão poderá aparecer novamente em outro sorteio.'}</small>`}
   const article=$(`#${type}-q${i+1} .enem-qhead .tag`);if(article)article.textContent=correct?'✓ Acertou':'↻ Revisar';
 }
-function progress(){const all=DATA.reduce((n,c)=>n+c.lessons.length,0),done=DATA.reduce((n,c)=>n+doneCount(c),0),answers=Object.values(state.stats).reduce((n,s)=>n+s.total,0),rows=Object.entries(state.stats),rank=rankForXP(),rankPanel=`<section class="rank-progress-card rank-${rank.current.id}"><div class="rank-progress-head"><div class="rank-emblem">${rank.current.icon}</div><div><span class="eyebrow">SEU RANKING ATUAL</span><h2>${rank.current.name}</h2><p>${state.xp.toLocaleString('pt-BR')} XP acumulados</p></div><span class="rank-tier-count">${RANKS.findIndex(r=>r.id===rank.current.id)+1}/6</span></div>${rank.next?`<div class="rank-next-row"><strong>Próximo: ${rank.next.icon} ${rank.next.name}</strong><span>Faltam ${rank.remaining.toLocaleString('pt-BR')} XP</span></div><div class="rank-progress-track"><span style="width:${rank.progress}%"></span></div>`:'<div class="rank-next-row"><strong>🏆 Você alcançou o ranking máximo!</strong><span>Geógrafo</span></div><div class="rank-progress-track"><span style="width:100%"></span></div>'}<div class="rank-ladder">${RANKS.map(r=>`<div class="rank-step ${r.id===rank.current.id?'current':state.xp>=r.min?'unlocked':''}"><span>${r.icon}</span><strong>${r.name}</strong><small>${r.min.toLocaleString('pt-BR')} XP</small></div>`).join('')}</div></section>`;return `<div class="page-head"><div class="eyebrow">SEU CAMINHO ATÉ A APROVAÇÃO</div><h1>Olha o quanto você já avançou! ✨</h1><p class="subhead">Acompanhe sua constância e descubra quais assuntos merecem mais uma revisão.</p></div>${rankPanel}<div class="grid2"><div class="stat-card"><div class="big">${state.xp} ✦</div><p>XP acumulado · ranking ${rank.current.name}</p></div><div class="stat-card"><div class="big">${done}/${all}</div><p>lições concluídas no total</p></div><div class="stat-card"><div class="big">${answers}</div><p>respostas registradas</p></div><div class="stat-card"><div class="big">${state.streak} 🔥</div><p>dias de ofensiva atual</p></div></div><div class="panel" style="margin-top:16px"><h2>Suas jornadas</h2>${DATA.map(c=>{const d=doneCount(c),p=Math.round(d/c.lessons.length*100);return `<div style="margin:17px 0"><div class="daily-row"><strong>${c.emoji} ${esc(c.name)}</strong><span>${d}/${c.lessons.length} · ${p}%</span></div><div class="daily-bar"><span style="width:${p}%;background:linear-gradient(90deg,var(--purple),#a28fff)"></span></div></div>`}).join('')}</div><div class="panel"><h2>Domínio por assunto</h2>${rows.length?`<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="text-align:left;color:var(--muted)"><th style="padding:8px">Assunto</th><th>Acertos</th><th>Estimativa</th></tr>${rows.map(([t,s])=>{const p=Math.round(s.correct/s.total*100);return `<tr style="border-top:1px solid var(--line)"><td style="padding:10px 8px">${esc(t)}</td><td>${s.correct}/${s.total} (${p}%)</td><td>${s.total<5?'Poucos dados':p>=80?'Bom domínio':p>=60?'Em desenvolvimento':'Revisar'}</td></tr>`}).join('')}</table><p class="muted">Estimativas baseadas nas respostas registradas; não substituem uma avaliação completa.</p>`:'<p class="muted">Responda questões para ver seu desempenho por assunto.</p>'}</div><div class="panel"><h2>Conquistas</h2><div class="grid2">${[{id:'50',icon:'🌟',name:'Primeiros passos',desc:'Acumule 50 XP'},{id:'200',icon:'🏅',name:'Em ritmo forte',desc:'Acumule 200 XP'}].map(b=>`<div class="stat-card" style="opacity:${state.badges.includes(b.id)?1:.55}"><div style="font-size:25px">${b.icon}</div><strong>${b.name}</strong><p>${state.badges.includes(b.id)?'Conquistada':b.desc}</p></div>`).join('')}</div></div>`}
+function progress(){const all=DATA.reduce((n,c)=>n+c.lessons.length,0),done=DATA.reduce((n,c)=>n+doneCount(c),0),answers=Object.values(state.stats).reduce((n,s)=>n+s.total,0),rows=Object.entries(state.stats),rank=rankForXP(),rankPanel=`<section class="rank-progress-card rank-${rank.current.id}"><div class="rank-progress-head"><div class="rank-emblem">${rank.current.icon}</div><div><span class="eyebrow">SEU RANKING ATUAL</span><h2>${rank.current.name}</h2><p>${state.xp.toLocaleString('pt-BR')} XP acumulados</p></div><span class="rank-tier-count">${RANKS.findIndex(r=>r.id===rank.current.id)+1}/6</span></div>${rank.next?`<div class="rank-next-row"><strong>Próximo: ${rank.next.icon} ${rank.next.name}</strong><span>Faltam ${rank.remaining.toLocaleString('pt-BR')} XP</span></div><div class="rank-progress-track"><span style="width:${rank.progress}%"></span></div>`:'<div class="rank-next-row"><strong>🏆 Você alcançou o ranking máximo!</strong><span>Geógrafo</span></div><div class="rank-progress-track"><span style="width:100%"></span></div>'}<div class="rank-ladder">${RANKS.map(r=>`<div class="rank-step ${r.id===rank.current.id?'current':state.xp>=r.min?'unlocked':''}"><span>${r.icon}</span><strong>${r.name}</strong><small>${r.min.toLocaleString('pt-BR')} XP</small></div>`).join('')}</div></section>`;return `<div class="page-head"><div class="eyebrow">SEU CAMINHO ATÉ A APROVAÇÃO</div><h1></h1><p class="subhead">Acompanhe sua constância e descubra quais assuntos merecem mais uma revisão.</p></div>${rankPanel}<div class="grid2"><div class="stat-card"><div class="big">${state.xp} ✦</div><p>XP acumulado · ranking ${rank.current.name}</p></div><div class="stat-card"><div class="big">${done}/${all}</div><p>lições concluídas no total</p></div><div class="stat-card"><div class="big">${answers}</div><p>respostas registradas</p></div><div class="stat-card"><div class="big">${state.streak} 🔥</div><p>dias de ofensiva atual</p></div></div><div class="panel" style="margin-top:16px"><h2>Suas jornadas</h2>${DATA.map(c=>{const d=doneCount(c),p=Math.round(d/c.lessons.length*100);return `<div style="margin:17px 0"><div class="daily-row"><strong>${c.emoji} ${esc(c.name)}</strong><span>${d}/${c.lessons.length} · ${p}%</span></div><div class="daily-bar"><span style="width:${p}%;background:linear-gradient(90deg,var(--purple),#a28fff)"></span></div></div>`}).join('')}</div><div class="panel"><h2>Domínio por assunto</h2>${rows.length?`<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="text-align:left;color:var(--muted)"><th style="padding:8px">Assunto</th><th>Acertos</th><th>Estimativa</th></tr>${rows.map(([t,s])=>{const p=Math.round(s.correct/s.total*100);return `<tr style="border-top:1px solid var(--line)"><td style="padding:10px 8px">${esc(t)}</td><td>${s.correct}/${s.total} (${p}%)</td><td>${s.total<5?'Poucos dados':p>=80?'Bom domínio':p>=60?'Em desenvolvimento':'Revisar'}</td></tr>`}).join('')}</table><p class="muted">Estimativas baseadas nas respostas registradas; não substituem uma avaliação completa.</p>`:'<p class="muted">Responda questões para ver seu desempenho por assunto.</p>'}</div><div class="panel"><h2>Conquistas</h2><div class="grid2">${[{id:'50',icon:'🌟',name:'Primeiros passos',desc:'Acumule 50 XP'},{id:'200',icon:'🏅',name:'Em ritmo forte',desc:'Acumule 200 XP'}].map(b=>`<div class="stat-card" style="opacity:${state.badges.includes(b.id)?1:.55}"><div style="font-size:25px">${b.icon}</div><strong>${b.name}</strong><p>${state.badges.includes(b.id)?'Conquistada':b.desc}</p></div>`).join('')}</div></div>`}
 // ========================================
 // RADAR GEOPOLÍTICO — protótipo visual
 // Os pontos e textos abaixo são demonstrativos; não representam notícias ao vivo.
@@ -467,7 +471,11 @@ let liveEventsByCountry=new Map(),liveFeedError='';
 function liveCountryFromPath(el){const raw=el.dataset.country||'País';return {id:el.dataset.iso||raw,name:liveCountryName(raw)}}
 async function loadLiveEvents(){
   liveFeedError='';
-  const {data,error}=await supabaseClient.from('global_events').select('id,title,description,countries,source_name,source_url,published_at').eq('status','active').order('published_at',{ascending:false}).limit(500);
+  if(!supabaseClient || !navigator.onLine){liveFeedError='offline';return}
+  let data,error;
+  try{
+    ({data,error}=await supabaseClient.from('global_events').select('id,title,description,countries,source_name,source_url,published_at').eq('status','active').order('published_at',{ascending:false}).limit(500));
+  }catch(err){liveFeedError=err?.message||'Sem conexão';return}
   if(error){liveFeedError=error.message;console.error('Falha ao carregar notícias do Radar Global:',error);return}
   liveEventsByCountry=new Map();
   (data||[]).forEach(article=>{
@@ -558,6 +566,7 @@ function setAuthMode(mode){
 function authMessage(message,error=false){const el=$('#authMessage');if(el){el.textContent=message;el.classList.toggle('error',error)}}
 async function submitAuth(event){
   event.preventDefault();
+  if(!supabaseClient){authMessage('A conexão com a conta não está disponível. Você pode continuar estudando e seu progresso ficará salvo neste aparelho.',true);return;}
   const email=$('#authEmail').value.trim(),password=$('#authPassword').value;
   const name=$('#authName').value.trim();
   const button=$('#authSubmit');button.disabled=true;button.textContent='Aguarde...';authMessage('');
@@ -586,6 +595,7 @@ function authErrorText(error){
   return m||'Não foi possível conectar. Verifique sua internet e tente novamente.';
 }
 async function loadCloudProgress(isLogin=false){
+  if(!supabaseClient) return;
   syncReady=false;
   const {data,error}=await supabaseClient.from('profiles').select('progress,display_name').eq('id',authUser.id).maybeSingle();
   if(error)throw error;
@@ -593,6 +603,16 @@ async function loadCloudProgress(isLogin=false){
   const hasCloud=cloud&&typeof cloud==='object'&&Object.keys(cloud).length>0;
   const localRaw=localStorage.getItem(KEY);
   const hasLocal=!!localRaw&&localRaw!=='{}';
+  const hasOfflineChanges=localStorage.getItem(OFFLINE_DIRTY_KEY)==='1';
+  if(hasOfflineChanges && hasLocal){
+    // O progresso local é a cópia mais recente quando houve estudo sem rede.
+    try{state={...defaults(),...JSON.parse(localRaw)}}catch{state=defaults()}
+    syncReady=true;
+    updateHeader();
+    if(view)go(view);
+    await syncProgress(true);
+    return;
+  }
   if(hasCloud){
     state={...defaults(),...cloud,examCorrect:{...defaults().examCorrect,...(cloud.examCorrect||{})},examAttempts:{...defaults().examAttempts,...(cloud.examAttempts||{})},examBatch:{...defaults().examBatch,...(cloud.examBatch||{})},examBatchAnswers:{...defaults().examBatchAnswers,...(cloud.examBatchAnswers||{})}};
     try{localStorage.setItem(KEY,JSON.stringify(state))}catch{}
@@ -608,12 +628,14 @@ async function loadCloudProgress(isLogin=false){
   if(view)go(view);
 }
 async function syncProgress(force=false){
-  if(!authUser||(!syncReady&&!force))return;
+  if(!supabaseClient||!authUser||(!syncReady&&!force))return;
   const totalCorrect=Object.values(state.stats||{}).reduce((n,s)=>n+(Number(s.correct)||0),0);
   const totalAnswers=Object.values(state.stats||{}).reduce((n,s)=>n+(Number(s.total)||0),0);
   const payload={progress:state,xp:Number(state.xp)||0,streak:Number(state.streak)||0,lessons_completed:Object.keys(state.completed||{}).filter(k=>state.completed[k]).length,correct_answers:totalCorrect,incorrect_answers:Math.max(0,totalAnswers-totalCorrect)};
   const {error}=await supabaseClient.from('profiles').update(payload).eq('id',authUser.id);
-  if(error){console.warn('Falha ao sincronizar progresso:',error.message);if(!force)notify('Não foi possível sincronizar. Seu progresso continua salvo neste aparelho.')}
+  if(error){console.warn('Falha ao sincronizar progresso:',error.message);if(!force)notify('Não foi possível sincronizar. Seu progresso continua salvo neste aparelho.');return false}
+  try{localStorage.removeItem(OFFLINE_DIRTY_KEY)}catch{}
+  return true;
 }
 function showAuthenticated(){
   const screen=$('#authScreen');if(screen)screen.remove();
@@ -624,6 +646,7 @@ function showAuthenticated(){
   $('#authLogout').onclick=logout;
 }
 async function logout(){
+  if(!supabaseClient)return;
   const {error}=await supabaseClient.auth.signOut();
   if(error){notify('Não foi possível sair da conta.');return}
   authUser=null;syncReady=false;
@@ -632,17 +655,50 @@ async function logout(){
   authMessage('Você saiu da conta. Seu progresso continua salvo neste aparelho.');
 }
 async function initAuth(){
+  // Sem SDK ou sem conexão, não bloqueia a jornada com a tela de login.
+  if(!supabaseClient || !navigator.onLine || authInitializing || supabaseInitialized) return;
+  authInitializing=true;
   authScreen();
   try{
     const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;
     if(data.session?.user){authUser=data.session.user;await loadCloudProgress();showAuthenticated()}
     else{setAuthMode('login')}
-    supabaseClient.auth.onAuthStateChange((event,session)=>{
-      if(event==='SIGNED_OUT'){authUser=null;syncReady=false;authScreen();setAuthMode('login')}
-    });
-  }catch(error){authMessage('Falha ao iniciar a conexão: '+authErrorText(error),true)}
+    if(!authListenerRegistered){
+      supabaseClient.auth.onAuthStateChange((event,session)=>{
+        if(event==='SIGNED_OUT'){authUser=null;syncReady=false;authScreen();setAuthMode('login')}
+      });
+      authListenerRegistered=true;
+    }
+    supabaseInitialized=true;
+  }catch(error){
+    console.warn('Autenticação indisponível; o app continuará em modo local:',error);
+    authUser=null;syncReady=false;
+    const screen=$('#authScreen');if(screen)screen.remove();
+    // Permite tentar novamente quando a conexão voltar.
+    supabaseInitialized=false;
+  }finally{authInitializing=false}
+}
+
+function loadSupabaseSdk(){
+  if(supabaseClient){initAuth();return}
+  if(supabaseLoading || !navigator.onLine)return;
+  supabaseLoading=true;
+  const script=document.createElement('script');
+  script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  script.async=true;
+  const timeout=setTimeout(()=>{supabaseLoading=false;script.remove()},6000);
+  script.onload=()=>{
+    clearTimeout(timeout);supabaseLoading=false;
+    if(window.supabase?.createClient){
+      supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+      initAuth();
+    }
+  };
+  script.onerror=()=>{clearTimeout(timeout);supabaseLoading=false;console.warn('SDK de conta indisponível; o app seguirá em modo local.')};
+  document.head.appendChild(script);
 }
 
 $('#switcher').onclick=()=>{$('#contentMenu').classList.toggle('hidden');$('#switcher').setAttribute('aria-expanded',String(!$('#contentMenu').classList.contains('hidden')))};$('#contentMenu').onclick=e=>{const b=e.target.closest('[data-content]');if(!b)return;state.active=b.dataset.content;save();$('#contentMenu').classList.add('hidden');go('jornada')};document.addEventListener('click',e=>{if(!e.target.closest('.switch-wrap'))$('#contentMenu').classList.add('hidden');const b=e.target.closest('[data-view]');if(b&&!$('#content').contains(b))go(b.dataset.view)});document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#contentMenu').classList.add('hidden')});go('jornada');
-initAuth();
+window.addEventListener('online',loadSupabaseSdk);
+loadSupabaseSdk();
 })();
