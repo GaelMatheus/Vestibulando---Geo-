@@ -1291,3 +1291,12 @@ body.exam-active{background:#ffffff!important;color:#203238!important}
   .module-path .node.current .orb::before,
   .module-path .node.current .orb::after{animation:none;opacity:0}
 }
+
+
+/* Restaura o comportamento responsivo do HERO: em telas móveis a navegação lateral some.
+   O display:flex global da sidebar é apenas para desktop; não pode sobrescrever o breakpoint. */
+@media (max-width: 820px) {
+  .shell { display: block !important; grid-template-columns: minmax(0, 1fr) !important; }
+  .sidebar { display: none !important; }
+  .main { width: 100%; min-width: 0; }
+}
