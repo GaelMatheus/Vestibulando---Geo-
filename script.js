@@ -168,7 +168,7 @@ function pathHTML(c){
   const groups=moduleGroups(c);
   return groups.map(group=>{
     const moduleItems=group.items;
-    const step=164,center=82;
+    const step=164,center=90;
     const connectors=moduleItems.slice(0,-1).map((_,i)=>{
       const from=i%2===0?25:75,to=i%2===0?75:25;
       const y1=center+i*step,y2=center+(i+1)*step;
