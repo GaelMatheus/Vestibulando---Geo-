@@ -51,7 +51,7 @@ const KEY='vestibulando-geo-v2';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dateKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const defaults=()=>({active:'cartografia',xp:0,streak:0,lastDay:null,completed:{},stats:{},errors:[],badges:[],examCorrect:{},examAttempts:{},examBatch:{enem:[],random:[]},examBatchAnswers:{enem:{},random:{}}});
+const defaults=()=>({active:'cartografia',xp:0,streak:0,lastDay:null,activityDays:[],completed:{},stats:{},errors:[],badges:[],examCorrect:{},examAttempts:{},examBatch:{enem:[],random:[]},examBatchAnswers:{enem:{},random:{}}});
 function load(){try{return {...defaults(),...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return defaults()}}
 let state=load(), view='jornada', session=null, map={mode:'countries',continent:'southAmerica',data:null,featureCache:{},boundsCache:{},targets:null,index:0,target:null,found:new Set(),misses:0,finished:false,biomeOrder:null,biomeIndex:0,biomeFound:new Set(),biomeMisses:0,biomeData:null};
 let toastTimer;
@@ -68,10 +68,7 @@ function save(){
 function notify(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400)}
 function currentStreak(){
   const today=dateKey(),yesterday=dateKey(new Date(Date.now()-86400000));
-  if(!state.lastDay||(state.lastDay!==today&&state.lastDay!==yesterday)){
-    if(state.streak!==0||state.lastDay!==null){state.streak=0;state.lastDay=null;try{localStorage.setItem(KEY,JSON.stringify(state))}catch{}}
-    return 0;
-  }
+  if(!state.lastDay||(state.lastDay!==today&&state.lastDay!==yesterday))return 0;
   state.streak=Math.min(10000,Math.max(0,Number(state.streak)||0));
   return state.streak;
 }
@@ -81,6 +78,27 @@ function studyDay(){
   const yesterday=dateKey(new Date(Date.now()-86400000));
   state.streak=Math.min(10000,state.lastDay===yesterday?Math.max(0,Number(state.streak)||0)+1:1);
   state.lastDay=today;
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-13);
+  state.activityDays=[...new Set([...(state.activityDays||[]).filter(d=>d>=dateKey(cutoff)),today])].sort();
+}
+function weekDaysMarkup(){
+  const now=new Date(),today=dateKey(now),monday=new Date(now);
+  monday.setHours(0,0,0,0);monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
+  const labels=['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
+  let completed=new Set(state.activityDays||[]);
+  if(!completed.size&&state.lastDay&&Number(state.streak)>0){
+    for(let i=0;i<7;i++){
+      const d=new Date(monday);d.setDate(monday.getDate()+i);
+      const diff=Math.round((new Date(`${state.lastDay}T12:00:00`)-new Date(`${dateKey(d)}T12:00:00`))/86400000);
+      if(diff>=0&&diff<Math.min(10000,Number(state.streak)||0))completed.add(dateKey(d));
+    }
+  }
+  return labels.map((label,i)=>{
+    const d=new Date(monday);d.setDate(monday.getDate()+i);
+    const key=dateKey(d),active=completed.has(key),isToday=key===today,isPast=key<today;
+    const cls=['day',active?'active':'',!active&&isPast?'missed':'',isToday?'today':'',key>today?'future':''].filter(Boolean).join(' ');
+    return `<div class="day ${cls}" aria-label="${label}${active?' — lição concluída':isPast?' — sem lição':''}"><span>${active?'✓':isPast?'·':isToday?'•':' '}</span><small>${label}</small></div>`;
+  }).join('');
 }
 const RANKS=[
   {id:'bronze',name:'Bronze',icon:'🥉',min:0},
@@ -108,7 +126,7 @@ function award(n){
 }
 function isUnlocked(l,i,c=active()){return i===0||!!state.completed[lessons(c)[i-1]?.id]}
 function nextLesson(c=active()){return lessons(c).find((l,i)=>!state.completed[l.id]&&isUnlocked(l,i,c))}
-function updateHeader(){const c=active(),rank=rankForXP();$('#activeEmoji').textContent=c.emoji;$('#activeName').textContent=c.name;$('#activeMeta').textContent=`${doneCount(c)} de ${lessons(c).length} etapas concluídas` ;$('#xp').textContent=state.xp;$('#streak').textContent=currentStreak();const rankPill=$('#rankPill');if(rankPill){$('#rankIcon').textContent=rank.current.icon;$('#rankName').textContent=rank.current.name;rankPill.dataset.rank=rank.current.id;rankPill.title=rank.next?`${rank.current.name} · faltam ${rank.remaining} XP para ${rank.next.name}`:`${rank.current.name} · ranking máximo`;}$('#switcher').setAttribute('aria-expanded',String(!$('#contentMenu').classList.contains('hidden')));$('#contentMenu').innerHTML=`<div class="eyebrow" style="padding:9px 11px 3px">ESCOLHA SUA JORNADA</div>`+DATA.map(x=>`<button class="content-option ${x.id===state.active?'selected':''}" data-content="${x.id}"><span class="option-emoji">${x.emoji}</span><span><strong>${esc(x.name)}</strong><small>${doneCount(x)} de ${x.lessons.length} etapas concluídas</small></span>${x.id===state.active?'<span class="option-check">✓</span>':''}</button>`).join('')}
+function updateHeader(){const c=active(),rank=rankForXP();const week=$('#weekDays');if(week)week.innerHTML=weekDaysMarkup();$('#activeEmoji').textContent=c.emoji;$('#activeName').textContent=c.name;$('#activeMeta').textContent=`${doneCount(c)} de ${lessons(c).length} etapas concluídas` ;$('#xp').textContent=state.xp;$('#streak').textContent=currentStreak();const rankPill=$('#rankPill');if(rankPill){$('#rankIcon').textContent=rank.current.icon;$('#rankName').textContent=rank.current.name;rankPill.dataset.rank=rank.current.id;rankPill.title=rank.next?`${rank.current.name} · faltam ${rank.remaining} XP para ${rank.next.name}`:`${rank.current.name} · ranking máximo`;}$('#switcher').setAttribute('aria-expanded',String(!$('#contentMenu').classList.contains('hidden')));$('#contentMenu').innerHTML=`<div class="eyebrow" style="padding:9px 11px 3px">ESCOLHA SUA JORNADA</div>`+DATA.map(x=>`<button class="content-option ${x.id===state.active?'selected':''}" data-content="${x.id}"><span class="option-emoji">${x.emoji}</span><span><strong>${esc(x.name)}</strong><small>${doneCount(x)} de ${x.lessons.length} etapas concluídas</small></span>${x.id===state.active?'<span class="option-check">✓</span>':''}</button>`).join('')}
 function nav(){ $$('.nav-item,.mobile-nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view)); }
 function go(v){session=null;document.body.classList.remove('lesson-active','exam-active');if(v==='questoes'&&(examView==='enem'||examView==='random'))document.body.classList.add('exam-active');view=v;const renderer=VIEWS[v]||VIEWS.jornada;$('#content').innerHTML=renderer();nav();updateHeader();bind();$('#content').focus({preventScroll:true});window.scrollTo({top:0,behavior:'smooth'});if(v==='atlas')loadAtlas();if(v==='ao-vivo')initLiveMap()}
 function moduleFor(c,index){
@@ -150,11 +168,11 @@ function pathHTML(c){
   const groups=moduleGroups(c);
   return groups.map(group=>{
     const moduleItems=group.items;
-    const step=c.id==='geopolitica'?164:164,center=90;
+    const step=164,center=82;
     const connectors=moduleItems.slice(0,-1).map((_,i)=>{
-      const from=50,to=50;
+      const from=i%2===0?25:75,to=i%2===0?75:25;
       const y1=center+i*step,y2=center+(i+1)*step;
-      return `<path d="M ${from} ${y1} C ${from} ${y1+58}, ${to} ${y2-58}, ${to} ${y2}"/>`;
+      return `<path d="M ${from} ${y1} C ${from} ${y1+48}, ${to} ${y2-48}, ${to} ${y2}"/>`;
     }).join('');
     const isGeo=c.id==='geopolitica';
     return `<section class="module-section" data-module-section="${group.number}" data-module="${group.number}">
@@ -168,7 +186,7 @@ function pathHTML(c){
     </section>`;
   }).join('');
 }
-function journey(){const c=active(),n=lessons(c),done=doneCount(c),pct=Math.round(done/n.length*100),next=nextLesson(c),streak=currentStreak();return `<div class="welcome"><div><h1>${esc(c.name)}</h1><p class="subhead">Estude por etapas e acompanhe seu progresso.</p></div><button class="primary" data-continue ${next?'':'disabled'}>${next?'▶ Continuar jornada':'✓ Jornada concluída'}</button></div><div class="journey"><section><div class="unit-banner"><div class="unit-symbol">${c.icon||c.emoji}</div><div><h2>${esc(c.unit)}</h2><p>${esc(c.description)}</p></div><div class="unit-progress"><strong>${pct}%</strong><span>da jornada</span></div></div><div class="path">${pathHTML(c)}</div></section><aside class="side-col"><div class="side-card streak-card"><h3 class="streak-title"><img class="streak-flame" src="./streak-flame.gif" alt=""> Ofensiva</h3><div class="streak-big">${streak.toLocaleString('pt-BR')}</div></div><div class="side-card"><h3>Seu progresso</h3><div class="ring-row"><div class="ring" style="--pct:${pct}%"><strong>${pct}%</strong></div><div><strong>${done} de ${n.length} lições</strong><div class="muted">${pct===100?'Jornada concluída':`${n.length-done} etapas restantes`}</div></div></div><div class="daily-bar" style="margin-top:15px"><span style="width:${pct}%"></span></div></div></aside></div>`}
+function journey(){const c=active(),n=lessons(c),done=doneCount(c),pct=Math.round(done/n.length*100),next=nextLesson(c),streak=currentStreak();return `<div class="welcome"><div><h1>${esc(c.name)}</h1><p class="subhead">Estude por etapas e acompanhe seu progresso.</p></div><button class="primary" data-continue ${next?'':'disabled'}>${next?'▶ Continuar jornada':'✓ Jornada concluída'}</button></div><div class="journey"><section><div class="unit-banner"><div class="unit-symbol">${c.icon||c.emoji}</div><div><h2>${esc(c.unit)}</h2><p>${esc(c.description)}</p></div><div class="unit-progress"><strong>${pct}%</strong><span>da jornada</span></div></div><div class="path">${pathHTML(c)}</div></section><aside class="side-col"><div class="side-card streak-card"><h3 class="streak-title"><img class="streak-flame" src="./streak-flame.gif" alt=""> Ofensiva</h3><div class="streak-big">${streak.toLocaleString('pt-BR')}</div><div class="week" id="weekDays">${weekDaysMarkup()}</div></div><div class="side-card"><h3>Seu progresso</h3><div class="ring-row"><div class="ring" style="--pct:${pct}%"><strong>${pct}%</strong></div><div><strong>${done} de ${n.length} lições</strong><div class="muted">${pct===100?'Jornada concluída':`${n.length-done} etapas restantes`}</div></div></div><div class="daily-bar" style="margin-top:15px"><span style="width:${pct}%"></span></div></div></aside></div>`}
 function startLesson(id,quick=false,qs=null){const c=active(),l=quick?{id:'quick',title:'Desafio rápido',icon:'⚡',minutes:3,intro:'Cinco perguntas rápidas de diferentes conteúdos.',questions:qs}:lessons(c).find(x=>x.id===id);if(!l)return;const i=lessons(c).findIndex(x=>x.id===id);if(!quick&&!isUnlocked(l,i,c)){notify('Conclua a lição anterior para desbloquear esta.');return}session={lesson:l,index:0,correct:0,phase:quick?'question':'intro',answered:false,quick};renderSession()}
 function lessonMapMarkup(q){
  if(!map.data)return '<div class="lesson-map-loading">Preparando o mapa-múndi…</div>';
