@@ -747,6 +747,10 @@ function loadSupabaseSdk(){
 const deviceAlreadyAuthorized=restoreDeviceAuth();
 if(!deviceAlreadyAuthorized)authScreen();
 $('#switcher').onclick=()=>{$('#contentMenu').classList.toggle('hidden');$('#switcher').setAttribute('aria-expanded',String(!$('#contentMenu').classList.contains('hidden')))};$('#contentMenu').onclick=e=>{const b=e.target.closest('[data-content]');if(!b)return;state.active=b.dataset.content;save();$('#contentMenu').classList.add('hidden');go('jornada')};document.addEventListener('click',e=>{if(!e.target.closest('.switch-wrap'))$('#contentMenu').classList.add('hidden');const b=e.target.closest('[data-view]');if(b&&!$('#content').contains(b))go(b.dataset.view)});document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#contentMenu').classList.add('hidden')});go('jornada');
-window.addEventListener('online',loadSupabaseSdk);
+window.addEventListener('online',()=>{
+  // Revalida a sessão ao voltar a rede e envia alterações feitas offline.
+  supabaseInitialized=false;
+  loadSupabaseSdk();
+});
 loadSupabaseSdk();
 })();
