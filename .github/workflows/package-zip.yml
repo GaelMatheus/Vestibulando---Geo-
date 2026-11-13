@@ -13,7 +13,7 @@ jobs:
         with:
           ref: ui-polish-splash-streak
       - name: Create ZIP from tracked project files
-        run: git archive --format=zip --output=Vestibulando-Geo-semana-zigzag.zip HEAD
+        run: git archive --format=zip --output=Vestibulando-Geo-semana-zigzag.zip HEAD $(git ls-tree -r --name-only HEAD | grep -v '^\\.github/')
       - uses: actions/upload-artifact@v4
         with:
           name: Vestibulando-Geo-semana-zigzag
