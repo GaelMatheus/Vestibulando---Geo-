@@ -10,7 +10,27 @@ const SUPABASE_ANON_KEY = 'sb_publishable_MKTJTsep36N6j6mKJWEYTA_B7fS7YMJ';
 let supabaseClient = null;
 let supabaseLoading = false, supabaseInitialized = false, authInitializing = false, authListenerRegistered = false;
 const OFFLINE_DIRTY_KEY = 'vestibulando-geo-v2-offline-dirty';
+const AUTH_DEVICE_KEY = 'vestibulando-geo-authenticated-device-v1';
+const SUPABASE_STORAGE_KEY = 'sb-wglpormkexxouuaqwyhq-auth-token';
 let authUser = null, syncReady = false, syncTimer = null, authMode = 'login';
+function readDeviceAuth(){try{const saved=JSON.parse(localStorage.getItem(AUTH_DEVICE_KEY)||'null');return saved&&saved.userId?saved:null}catch{return null}}
+function rememberDeviceAuth(user){if(!user?.id)return;try{localStorage.setItem(AUTH_DEVICE_KEY,JSON.stringify({userId:user.id,email:user.email||'',displayName:user.user_metadata?.display_name||'',savedAt:Date.now()}))}catch{}}
+function restoreDeviceAuth(){
+  let saved=readDeviceAuth();
+  // Compatibilidade: reconhece sessões Supabase já existentes antes desta atualização.
+  if(!saved){
+    try{
+      const session=JSON.parse(localStorage.getItem(SUPABASE_STORAGE_KEY)||'null');
+      const user=session?.user||session?.currentSession?.user;
+      const token=session?.access_token||session?.currentSession?.access_token;
+      if(user?.id&&token){rememberDeviceAuth(user);saved=readDeviceAuth()}
+    }catch{}
+  }
+  if(!saved)return false;
+  authUser={id:saved.userId,email:saved.email||'',user_metadata:{display_name:saved.displayName||''}};
+  showAuthenticated();
+  return true;
+}
 const SOURCE_DATA=window.GEO_CONTENT||[];
 const sourceCartografia=SOURCE_DATA.find(c=>c.id==='cartografia');
 const sourceGeopolitica=SOURCE_DATA.find(c=>c.id==='geopolitica');
@@ -581,9 +601,14 @@ async function submitAuth(event){
       if(error)throw error;
       authUser=data.user;
     }
-    await loadCloudProgress(true);
+    rememberDeviceAuth(authUser);
+    try{await loadCloudProgress(true)}catch(syncError){
+      // A autenticação foi concluída; uma falha temporária na nuvem não deve bloquear o estudo.
+      syncReady=false;
+      console.warn('Conta autenticada; sincronização ficará pendente:',syncError);
+    }
     showAuthenticated();
-    notify('Conta conectada. Progresso sincronizado!');
+    notify(syncReady?'Conta conectada. Progresso sincronizado!':'Conta conectada. Progresso salvo neste aparelho; sincronização pendente.');
   }catch(error){authMessage(authErrorText(error),true)}
   finally{button.disabled=false;button.textContent=authMode==='signup'?'Criar minha conta →':'Entrar na minha conta →'}
 }
@@ -646,34 +671,55 @@ function showAuthenticated(){
   $('#authLogout').onclick=logout;
 }
 async function logout(){
-  if(!supabaseClient)return;
-  const {error}=await supabaseClient.auth.signOut();
-  if(error){notify('Não foi possível sair da conta.');return}
+  try{
+    if(supabaseClient){
+      const {error}=await supabaseClient.auth.signOut({scope:'local'});
+      if(error)throw error;
+    }
+  }catch(error){notify('Não foi possível sair da conta.');return}
+  try{localStorage.removeItem(AUTH_DEVICE_KEY);localStorage.removeItem(SUPABASE_STORAGE_KEY)}catch{}
   authUser=null;syncReady=false;
   const chip=$('#accountChip');if(chip)chip.remove();
   authScreen();setAuthMode('login');
   authMessage('Você saiu da conta. Seu progresso continua salvo neste aparelho.');
 }
 async function initAuth(){
-  // Sem SDK ou sem conexão, não bloqueia a jornada com a tela de login.
+  // A sessão local já libera o dispositivo; a validação/sincronização acontece em segundo plano.
   if(!supabaseClient || !navigator.onLine || authInitializing || supabaseInitialized) return;
   authInitializing=true;
-  authScreen();
   try{
     const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;
-    if(data.session?.user){authUser=data.session.user;await loadCloudProgress();showAuthenticated()}
-    else{setAuthMode('login')}
+    if(data.session?.user){
+      authUser=data.session.user;
+      rememberDeviceAuth(authUser);
+      try{await loadCloudProgress()}catch(syncError){
+        syncReady=false;
+        console.warn('Sessão válida; sincronização ficará pendente:',syncError);
+      }
+      showAuthenticated();
+    }else if(!readDeviceAuth()){
+      authScreen();setAuthMode('login');
+    }else{
+      // Dispositivo já autenticado anteriormente: mantém o progresso local disponível.
+      restoreDeviceAuth();
+    }
     if(!authListenerRegistered){
       supabaseClient.auth.onAuthStateChange((event,session)=>{
-        if(event==='SIGNED_OUT'){authUser=null;syncReady=false;authScreen();setAuthMode('login')}
+        if(event==='SIGNED_OUT'){
+          try{localStorage.removeItem(AUTH_DEVICE_KEY)}catch{}
+          authUser=null;syncReady=false;
+          const chip=$('#accountChip');if(chip)chip.remove();
+          authScreen();setAuthMode('login');
+        }
       });
       authListenerRegistered=true;
     }
     supabaseInitialized=true;
   }catch(error){
-    console.warn('Autenticação indisponível; o app continuará em modo local:',error);
-    authUser=null;syncReady=false;
-    const screen=$('#authScreen');if(screen)screen.remove();
+    console.warn('Não foi possível atualizar a sessão; mantendo o modo local quando autorizado:',error);
+    syncReady=false;
+    if(readDeviceAuth())restoreDeviceAuth();
+    else{authScreen();authMessage('Não foi possível verificar sua conta. Conecte-se à internet para entrar.',true)}
     // Permite tentar novamente quando a conexão voltar.
     supabaseInitialized=false;
   }finally{authInitializing=false}
@@ -698,6 +744,8 @@ function loadSupabaseSdk(){
   document.head.appendChild(script);
 }
 
+const deviceAlreadyAuthorized=restoreDeviceAuth();
+if(!deviceAlreadyAuthorized)authScreen();
 $('#switcher').onclick=()=>{$('#contentMenu').classList.toggle('hidden');$('#switcher').setAttribute('aria-expanded',String(!$('#contentMenu').classList.contains('hidden')))};$('#contentMenu').onclick=e=>{const b=e.target.closest('[data-content]');if(!b)return;state.active=b.dataset.content;save();$('#contentMenu').classList.add('hidden');go('jornada')};document.addEventListener('click',e=>{if(!e.target.closest('.switch-wrap'))$('#contentMenu').classList.add('hidden');const b=e.target.closest('[data-view]');if(b&&!$('#content').contains(b))go(b.dataset.view)});document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#contentMenu').classList.add('hidden')});go('jornada');
 window.addEventListener('online',loadSupabaseSdk);
 loadSupabaseSdk();
