@@ -1,0 +1,21 @@
+name: Export requested project ZIP
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui-polish-splash-streak
+      - name: Package complete app
+        run: zip -r Vestibulando-Geo-atualizado.zip . -x ".git/*" ".github/*"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vestibulando-Geo-atualizado
+          path: Vestibulando-Geo-atualizado.zip
+          retention-days: 7
