@@ -12,8 +12,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ui-polish-splash-streak
-      - name: Create ZIP
-        run: zip -r Vestibulando-Geo-semana-zigzag.zip . -x ".git/*" ".github/*"
+      - name: Create ZIP from tracked project files
+        run: git archive --format=zip --output=Vestibulando-Geo-semana-zigzag.zip HEAD
       - uses: actions/upload-artifact@v4
         with:
           name: Vestibulando-Geo-semana-zigzag
