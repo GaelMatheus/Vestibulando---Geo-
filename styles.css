@@ -961,3 +961,17 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
   .streak-card .day span{width:22px;height:22px;border-radius:7px}
   .streak-card .day small{font-size:7px}
 }
+
+
+/* Atualização FUVEST + pequenos ajustes de navegação */
+.journey-subhead-placeholder{visibility:hidden;user-select:none;pointer-events:none}
+.fuvest-feature{grid-column:1/-1;border:1px solid #453e50;border-radius:24px;padding:22px;background:#302b39;color:#f3f0fa;box-shadow:0 8px 24px #100d1b44}
+.fuvest-feature-head{display:flex;align-items:center;gap:15px;margin-bottom:18px}
+.fuvest-feature-head .exam-icon{margin:0;flex:0 0 54px;background:#40394b!important;color:#c7b8ff!important}
+.fuvest-feature-head h2{margin:0 0 4px;font-size:24px;color:#f3f0fa}
+.fuvest-feature-head p{margin:0;color:#aaa3ba;font-size:13px}
+.fuvest-phase-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fuvest-phase-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:17px;border:1px solid #51495e;border-radius:17px;background:#373240;color:#f3f0fa;text-align:left;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s}
+.fuvest-phase-card:hover{transform:translateY(-2px);border-color:#9278ff;box-shadow:0 8px 20px #100d1b55}
+.fuvest-phase-card strong{font-size:17px}.fuvest-phase-card span{font-size:11px;font-weight:850;color:#b5a5ff}.fuvest-phase-card small{font-size:12px;color:#aaa3ba}.fuvest-phase-card b{margin-top:8px;font-size:12px;color:#b5a5ff}
+@media(max-width:520px){.fuvest-feature{padding:16px;border-radius:19px}.fuvest-phase-grid{grid-template-columns:1fr}.fuvest-phase-card{padding:15px}.fuvest-feature-head h2{font-size:21px}}
