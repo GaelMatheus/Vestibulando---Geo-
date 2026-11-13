@@ -1,4 +1,4 @@
-const CACHE_NAME = "vestibulando-geo-v49-mobile-click-fix";
+const CACHE_NAME = "vestibulando-geo-v46-mobile-selector-title";
 const MAP_CACHE_NAME = "vestibulando-geo-maps-v2";
 const MAP_HOSTS = new Set([
   "raw.githubusercontent.com",
