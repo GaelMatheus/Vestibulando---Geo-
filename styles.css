@@ -975,3 +975,6 @@ body.lesson-active,body.exam-active{background:var(--canvas);color:var(--ink)}
 .fuvest-phase-card:hover{transform:translateY(-2px);border-color:#9278ff;box-shadow:0 8px 20px #100d1b55}
 .fuvest-phase-card strong{font-size:17px}.fuvest-phase-card span{font-size:11px;font-weight:850;color:#b5a5ff}.fuvest-phase-card small{font-size:12px;color:#aaa3ba}.fuvest-phase-card b{margin-top:8px;font-size:12px;color:#b5a5ff}
 @media(max-width:520px){.fuvest-feature{padding:16px;border-radius:19px}.fuvest-phase-grid{grid-template-columns:1fr}.fuvest-phase-card{padding:15px}.fuvest-feature-head h2{font-size:21px}}
+
+/* O cabeçalho/HERO de jornada aparece somente na Minha jornada. */
+body.hero-hidden .topbar{display:none!important}
