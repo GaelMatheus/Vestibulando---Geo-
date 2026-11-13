@@ -154,12 +154,13 @@ function moduleGroups(c){
 }
 function pathHTML(c){
   const items=lessons(c);
-  const renderNode=(l,globalIndex,moduleMeta)=>{
+  const upcomingLessonId=nextLesson(c)?.id;
+  const renderNode=(l,globalIndex,moduleMeta,pathX)=>{
     const done=!!state.completed[l.id],can=isUnlocked(l,globalIndex,c),locked=!done&&!can,special=['checkpoint','challenge'].includes(l.type);
     const detail=c.id==='geopolitica'?`Exercício ${l.exercise}/9${l.mapLesson?' · mapa':''}`:`${l.minutes||3} min · ${special?(l.type==='checkpoint'?'checkpoint':'desafio de domínio'):'lição curta'}`;
-    return `<div class="node ${done?'done':''} ${locked?'locked':''} ${special?'checkpoint':''} ${l.mapLesson?'map-node':''} ${l.mapLesson?'map-node':''}">
+    return `<div class="node ${done?'done':''} ${locked?'locked':''} ${special?'checkpoint':''} ${l.mapLesson?'map-node':''} ${l.id===upcomingLessonId?'current':''}" style="--node-x:${pathX}%;">
       <button class="node-btn" data-lesson="${l.id}" ${locked?'disabled':''}>
-        <span class="orb">${done?'✓':locked?'':l.icon||'•'}</span>
+        <span class="orb">${done?'✓':''}</span>
         <span class="node-info"><strong>${esc(l.title)}</strong><small>${done?'Concluída':locked?'Conclua a etapa anterior':`${moduleMeta} · ${detail}`}</small></span>
       </button>
       ${done?'<span class="node-badge">✓ FEITO</span>':can?'<span class="node-badge">COMECE AQUI</span>':''}
@@ -168,20 +169,22 @@ function pathHTML(c){
   const groups=moduleGroups(c);
   return groups.map(group=>{
     const moduleItems=group.items;
-    const step=164,center=90;
+    const step=132,center=step/2,midpoint=(moduleItems.length-1)/2;
+    // A trilha faz uma curva progressiva: começa à esquerda, alcança a direita
+    // no exercício central (5/9) e retorna gradualmente à esquerda no 9/9.
+    const xPositions=moduleItems.map((_,i)=>midpoint===0?50:12+76*(1-Math.abs(i-midpoint)/midpoint));
     const connectors=moduleItems.slice(0,-1).map((_,i)=>{
-      const from=i%2===0?25:75,to=i%2===0?75:25;
+      const from=xPositions[i],to=xPositions[i+1];
       const y1=center+i*step,y2=center+(i+1)*step;
-      return `<path d="M ${from} ${y1} C ${from} ${y1+48}, ${to} ${y2-48}, ${to} ${y2}"/>`;
+      return `<path d="M ${from} ${y1} C ${from} ${y1+step*.52}, ${to} ${y2-step*.52}, ${to} ${y2}"/>`;
     }).join('');
-    const isGeo=c.id==='geopolitica';
     return `<section class="module-section" data-module-section="${group.number}" data-module="${group.number}">
       <header class="module-heading">
         <span class="module-kicker">MÓDULO ${String(group.number).padStart(2,'0')} / ${groups.length}</span>
         <h2>Módulo ${group.number}</h2>
         <h3>${esc(group.title)}</h3>
       </header>
-      <div class="module-path" data-module-path="${group.number}">${moduleItems.map(({lesson,index})=>renderNode(lesson,index,`Módulo ${group.number}`)).join('')}<svg class="path-connectors" viewBox="0 0 100 ${moduleItems.length*step+20}" preserveAspectRatio="none" aria-hidden="true">${connectors}</svg></div>
+      <div class="module-path" data-module-path="${group.number}">${moduleItems.map(({lesson,index},localIndex)=>renderNode(lesson,index,`Módulo ${group.number}`,xPositions[localIndex])).join('')}<svg class="path-connectors" viewBox="0 0 100 ${moduleItems.length*step}" preserveAspectRatio="none" aria-hidden="true">${connectors}</svg></div>
       <div class="module-end"><span>✦</span><strong>FIM DO MÓDULO ${group.number}</strong><span class="module-end-line"></span></div>
     </section>`;
   }).join('');
@@ -566,7 +569,7 @@ function answerExam(type,i,j){
   if(card){card.hidden=false;card.className=`enem-feedback feedback ${correct?'good':'bad'}`;card.innerHTML=`<strong>${correct?'✓ Correto!':'Resposta correta: '+String.fromCharCode(65+q.r)+'. '+esc(q.op[q.r])}</strong><p>${esc(q.e)}</p><small>${correct?'Questão concluída: ela não será sorteada novamente.':'Esta questão poderá aparecer novamente em outro sorteio.'}</small>`}
   const article=$(`#${type}-q${i+1} .enem-qhead .tag`);if(article)article.textContent=correct?'✓ Acertou':'↻ Revisar';
 }
-function progress(){const all=DATA.reduce((n,c)=>n+c.lessons.length,0),done=DATA.reduce((n,c)=>n+doneCount(c),0),answers=Object.values(state.stats).reduce((n,s)=>n+s.total,0),rows=Object.entries(state.stats),rank=rankForXP(),streak=currentStreak(),rankPanel=`<section class="rank-progress-card rank-${rank.current.id}"><div class="rank-progress-head"><div class="rank-emblem">${rank.current.icon}</div><div><span class="eyebrow">SEU RANKING ATUAL</span><h2>${rank.current.name}</h2><p>${state.xp.toLocaleString('pt-BR')} XP acumulados</p></div><span class="rank-tier-count">${RANKS.findIndex(r=>r.id===rank.current.id)+1}/6</span></div>${rank.next?`<div class="rank-next-row"><strong>Próximo: ${rank.next.icon} ${rank.next.name}</strong><span>Faltam ${rank.remaining.toLocaleString('pt-BR')} XP</span></div><div class="rank-progress-track"><span style="width:${rank.progress}%"></span></div>`:'<div class="rank-next-row"><strong>🏆 Você alcançou o ranking máximo!</strong><span>Geógrafo</span></div><div class="rank-progress-track"><span style="width:100%"></span></div>'}<div class="rank-ladder">${RANKS.map(r=>`<div class="rank-step ${r.id===rank.current.id?'current':state.xp>=r.min?'unlocked':''}"><span>${r.icon}</span><strong>${r.name}</strong><small>${r.min.toLocaleString('pt-BR')} XP</small></div>`).join('')}</div></section>`;return `<div class="page-head"><div class="eyebrow">SEU CAMINHO ATÉ A APROVAÇÃO</div><h1></h1><p class="subhead">Acompanhe sua constância e descubra quais assuntos merecem mais uma revisão.</p></div>${rankPanel}<div class="grid2"><div class="stat-card"><div class="big">${state.xp} ✦</div><p>XP acumulado · ranking ${rank.current.name}</p></div><div class="stat-card"><div class="big">${done}/${all}</div><p>lições concluídas no total</p></div><div class="stat-card"><div class="big">${answers}</div><p>respostas registradas</p></div><div class="stat-card"><div class="big">${streak} 🔥</div><p>dias de ofensiva atual</p></div></div><div class="panel" style="margin-top:16px"><h2>Suas jornadas</h2>${DATA.map(c=>{const d=doneCount(c),p=Math.round(d/c.lessons.length*100);return `<div style="margin:17px 0"><div class="daily-row"><strong>${c.emoji} ${esc(c.name)}</strong><span>${d}/${c.lessons.length} · ${p}%</span></div><div class="daily-bar"><span style="width:${p}%;background:linear-gradient(90deg,var(--purple),#a28fff)"></span></div></div>`}).join('')}</div><div class="panel"><h2>Domínio por assunto</h2>${rows.length?`<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="text-align:left;color:var(--muted)"><th style="padding:8px">Assunto</th><th>Acertos</th><th>Estimativa</th></tr>${rows.map(([t,s])=>{const p=Math.round(s.correct/s.total*100);return `<tr style="border-top:1px solid var(--line)"><td style="padding:10px 8px">${esc(t)}</td><td>${s.correct}/${s.total} (${p}%)</td><td>${s.total<5?'Poucos dados':p>=80?'Bom domínio':p>=60?'Em desenvolvimento':'Revisar'}</td></tr>`}).join('')}</table><p class="muted">Estimativas baseadas nas respostas registradas; não substituem uma avaliação completa.</p>`:'<p class="muted">Responda questões para ver seu desempenho por assunto.</p>'}</div><div class="panel"><h2>Conquistas</h2><div class="grid2">${[{id:'50',icon:'🌟',name:'Primeiros passos',desc:'Acumule 50 XP'},{id:'200',icon:'🏅',name:'Em ritmo forte',desc:'Acumule 200 XP'}].map(b=>`<div class="stat-card" style="opacity:${state.badges.includes(b.id)?1:.55}"><div style="font-size:25px">${b.icon}</div><strong>${b.name}</strong><p>${state.badges.includes(b.id)?'Conquistada':b.desc}</p></div>`).join('')}</div></div>`}
+function progress(){const all=DATA.reduce((n,c)=>n+c.lessons.length,0),done=DATA.reduce((n,c)=>n+doneCount(c),0),answers=Object.values(state.stats).reduce((n,s)=>n+s.total,0),rows=Object.entries(state.stats),rank=rankForXP(),streak=currentStreak(),rankPanel=`<section class="rank-progress-card rank-${rank.current.id}"><div class="rank-progress-head"><div class="rank-emblem">${rank.current.icon}</div><div><span class="eyebrow">SEU RANKING ATUAL</span><h2>${rank.current.name}</h2><p>${state.xp.toLocaleString('pt-BR')} XP acumulados</p></div><span class="rank-tier-count">${RANKS.findIndex(r=>r.id===rank.current.id)+1}/6</span></div>${rank.next?`<div class="rank-next-row"><strong>Próximo: ${rank.next.icon} ${rank.next.name}</strong><span>Faltam ${rank.remaining.toLocaleString('pt-BR')} XP</span></div><div class="rank-progress-track"><span style="width:${rank.progress}%"></span></div>`:'<div class="rank-next-row"><strong>🏆 Você alcançou o ranking máximo!</strong><span>Geógrafo</span></div><div class="rank-progress-track"><span style="width:100%"></span></div>'}<div class="rank-ladder">${RANKS.map(r=>`<div class="rank-step ${r.id===rank.current.id?'current':state.xp>=r.min?'unlocked':''}"><span>${r.icon}</span><strong>${r.name}</strong><small>${r.min.toLocaleString('pt-BR')} XP</small></div>`).join('')}</div></section>`;return `<div class="page-head"><div class="eyebrow">SEU CAMINHO ATÉ A APROVAÇÃO</div><h1></h1><p class="subhead">Acompanhe sua constância e descubra quais assuntos merecem mais uma revisão.</p></div>${rankPanel}<div class="grid2"><div class="stat-card"><div class="big">${state.xp} ✦</div><p>XP acumulado · ranking ${rank.current.name}</p></div><div class="stat-card"><div class="big">${done}/${all}</div><p>lições concluídas no total</p></div><div class="stat-card"><div class="big">${answers}</div><p>respostas registradas</p></div><div class="stat-card"><div class="big">${streak} 🔥</div><p>dias de ofensiva atual</p></div></div><div class="panel" style="margin-top:16px"><h2>Suas jornadas</h2>${DATA.map(c=>{const d=doneCount(c),p=Math.round(d/c.lessons.length*100);return `<div style="margin:17px 0"><div class="daily-row"><strong>${c.emoji} ${esc(c.name)}</strong><span>${d}/${c.lessons.length} · ${p}%</span></div><div class="daily-bar"><span style="width:${p}%;background:linear-gradient(90deg,var(--purple),#a28fff)"></span></div></div>`}).join('')}</div><div class="panel"><h2>Conquistas</h2><div class="grid2">${[{id:'50',icon:'🌟',name:'Primeiros passos',desc:'Acumule 50 XP'},{id:'200',icon:'🏅',name:'Em ritmo forte',desc:'Acumule 200 XP'}].map(b=>`<div class="stat-card" style="opacity:${state.badges.includes(b.id)?1:.55}"><div style="font-size:25px">${b.icon}</div><strong>${b.name}</strong><p>${state.badges.includes(b.id)?'Conquistada':b.desc}</p></div>`).join('')}</div></div>`}
 // ========================================
 // RADAR GEOPOLÍTICO — protótipo visual
 // Os pontos e textos abaixo são demonstrativos; não representam notícias ao vivo.

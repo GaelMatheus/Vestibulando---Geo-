@@ -1,4 +1,4 @@
-const CACHE_NAME = "vestibulando-geo-v36-atlas-clean";
+const CACHE_NAME = "vestibulando-geo-v43-sensor-atlas-original";
 const MAP_CACHE_NAME = "vestibulando-geo-maps-v2";
 const MAP_HOSTS = new Set([
   "raw.githubusercontent.com",
